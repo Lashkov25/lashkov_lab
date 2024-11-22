@@ -9,7 +9,7 @@ import org.springframework.data.relational.core.mapping.Table;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("ingredient")
+@Table("ingredients")
 public class Ingredient {
     @Id
     private Long id;

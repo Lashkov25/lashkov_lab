@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("drink")
+@Table("drinks")
 public class Drink {
     @Id
     private Long id;
