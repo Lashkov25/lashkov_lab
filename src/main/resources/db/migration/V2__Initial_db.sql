@@ -1,23 +1,23 @@
 -- Таблиця для клієнтів
 CREATE TABLE users (
-                    id BIGSERIAL PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    balance NUMERIC(12,2) NOT NULL
+                       id BIGSERIAL PRIMARY KEY,
+                       name VARCHAR(100) NOT NULL,
+                       balance NUMERIC(12,2) NOT NULL
 );
 
 -- Таблиця для напоїв
 CREATE TABLE drinks (
-                    id BIGSERIAL PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    price NUMERIC(12,2) NOT NULL,
-                    portions_available INT NOT NULL
+                        id BIGSERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        price NUMERIC(12,2) NOT NULL,
+                        portions_available INT NOT NULL
 );
 
 -- Таблиця для інгредієнтів
 CREATE TABLE ingredients (
-                        id BIGSERIAL PRIMARY KEY,
-                        name VARCHAR(100) NOT NULL,
-                        price NUMERIC(12,2) NOT NULL
+                             id BIGSERIAL PRIMARY KEY,
+                             name VARCHAR(100) NOT NULL,
+                             price NUMERIC(12,2) NOT NULL
 
 );
 

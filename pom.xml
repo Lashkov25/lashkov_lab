@@ -3,12 +3,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.3.5</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
+
     <groupId>ua.com.reactive</groupId>
     <artifactId>lashkov_lab</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -86,6 +88,23 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <!-- Flyway Maven плагін для міграції схем через JDBC -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>10.10.0</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/coffee_machine_db</url>  <!-- JDBC URL для Flyway -->
+                    <user>postgres</user>
+                    <password>2528142101SA_DA</password>
+                    <locations>
+                        <location>classpath:db/migration</location>
+                    </locations>
+                    <cleanDisabled>false</cleanDisabled>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
 </project>

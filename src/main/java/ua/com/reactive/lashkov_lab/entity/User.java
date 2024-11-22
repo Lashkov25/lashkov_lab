@@ -2,9 +2,14 @@ package ua.com.reactive.lashkov_lab.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+
 
 @Getter
+
 public class User {
+
+    @Id
     private final Long id;
     private final String name;
     @Setter
