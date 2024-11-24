@@ -2,12 +2,13 @@ package ua.com.reactive.lashkov_lab;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 
 @SpringBootApplication
-public class Application {
+@EnableR2dbcRepositories
+public class LashkovLabApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(LashkovLabApplication.class, args);
     }
-
 }

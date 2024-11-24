@@ -2,54 +2,38 @@ package ua.com.reactive.lashkov_lab.router;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import ua.com.reactive.lashkov_lab.handler.AdminHandler;
 import ua.com.reactive.lashkov_lab.handler.DrinkHandler;
 import ua.com.reactive.lashkov_lab.handler.UserHandler;
 
+import static org.springframework.web.reactive.function.server.RequestPredicates.*;
+import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+
 @Configuration
 public class CoffeeMachineRouter {
 
     @Bean
-    public RouterFunction<ServerResponse> route(UserHandler userHandler, DrinkHandler drinkHandler, AdminHandler adminHandler) {
-        return RouterFunctions
-                // Route для отримання балансу користувача
-                .route(RequestPredicates.GET("/api/user/balance"), request -> userHandler.getUserBalance())
+    public RouterFunction<ServerResponse> userRoutes(UserHandler userHandler) {
+        return route(GET("/api/users"), userHandler::getAllUsers)
+                .andRoute(POST("/api/users/register"), userHandler::createUser)
+                .andRoute(POST("/api/users/login"), userHandler::login);
+    }
 
-                // Route для оновлення балансу користувача
-                .andRoute(RequestPredicates.POST("/api/user/updateBalance"),
-                        request -> {
-                            Double amount = Double.valueOf(request.queryParam("сума").orElse("0"));
-                            return userHandler.updateUserBalance(amount);
-                        })
+    @Bean
+    public RouterFunction<ServerResponse> drinkRoutes(DrinkHandler drinkHandler) {
+        return route(GET("/api/drinks"), drinkHandler::getAllDrinks)
+                .andRoute(GET("/api/drinks/{id}"), drinkHandler::getDrinkById)
+                .andRoute(GET("/api/drinks/{id}/ingredients"), drinkHandler::getIngredients)
+                .andRoute(POST("/api/drinks/{id}/purchase"), drinkHandler::purchaseDrink);
+    }
 
-                // Route для отримання всіх напоїв
-                .andRoute(RequestPredicates.GET("/api/drinks"), request -> drinkHandler.getAllDrinks())
-
-                // Route для придбання напою
-                .andRoute(RequestPredicates.POST("/api/drinks/purchase"),
-                        request -> {
-                            Long drinkId = Long.valueOf(request.queryParam("id").orElse("1"));
-                            Double userBalance = Double.valueOf(request.queryParam("баланс").orElse("0"));
-                            return drinkHandler.purchaseDrink(drinkId, userBalance);
-                        })
-
-                // Route для поповнення напою (для адміністратора)
-                .andRoute(RequestPredicates.POST("/api/admin/refill"),
-                        request -> {
-                            Long drinkId = Long.valueOf(request.queryParam("id").orElse("1"));
-                            Integer quantity = Integer.valueOf(request.queryParam("кількість").orElse("1"));
-                            return adminHandler.refillDrink(drinkId, quantity);
-                        })
-
-                // Route для отримання інгредієнтів конкретного напою
-                .andRoute(RequestPredicates.GET("/api/drinks/{id}/ingredients"),
-                        request -> {
-                            Long drinkId = Long.valueOf(request.pathVariable("id"));
-                            return drinkHandler.getIngredients(drinkId);
-                        });
+    @Bean
+    public RouterFunction<ServerResponse> adminRoutes(AdminHandler adminHandler) {
+        return route(POST("/api/admin/drinks"), adminHandler::createDrink)
+                .andRoute(PUT("/api/admin/drinks/{id}"), adminHandler::updateDrink)
+                .andRoute(DELETE("/api/admin/drinks/{id}"), adminHandler::deleteDrink)
+                .andRoute(POST("/api/admin/drinks/{id}/refill"), adminHandler::refillDrink);
     }
 }

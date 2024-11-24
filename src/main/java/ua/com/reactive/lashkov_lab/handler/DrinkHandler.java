@@ -1,83 +1,79 @@
 package ua.com.reactive.lashkov_lab.handler;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import ua.com.reactive.lashkov_lab.entity.Drink;
-import ua.com.reactive.lashkov_lab.entity.Ingredient;
+import ua.com.reactive.lashkov_lab.dto.ApiResponse;
+import ua.com.reactive.lashkov_lab.service.DrinkService;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
+/**
+ * Клас обробник запитів на напої
+ */
 @Component
+@RequiredArgsConstructor
 public class DrinkHandler {
+    // Сервіс роботи з напоями
+    private final DrinkService drinkService;
 
-    // Змінюваний список напоїв із інгредієнтами
-    private final List<Drink> drinks = new ArrayList<>(List.of(
-            new Drink(1L, "Еспресо", 35.5, 14, List.of(
-                    new Ingredient(1L, "Сироп", 7.0),
-                    new Ingredient(2L, "Маршмеллоу", 7.0),
-                    new Ingredient(3L, "Вода", 0.5)
-            )),
-            new Drink(2L, "Лате", 55.0,15 , List.of(
-                    new Ingredient(1L, "Безлактозне молоко", 15.0),
-                    new Ingredient(2L, "Маршмеллоу", 7.0),
-                    new Ingredient(3L, "Сироп", 7.0)
-
-            )),
-            new Drink(3L, "Капучино", 55.0, 12, List.of(
-                    new Ingredient(1L, "Безлактозне молоко", 15.0),
-                    new Ingredient(2L, "Маршмеллоу", 7.0),
-                    new Ingredient(3L, "Сироп", 7.0)
-
-            ))
-    ));
-    // Метод для отримання списку напоїв
-    public Mono<ServerResponse> getAllDrinks() {
-        return ServerResponse
-                .ok()
+    // Метод створення відповіді
+    private Mono<ServerResponse> createResponse(ApiResponse<?> response, int status) {
+        return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Flux.fromIterable(drinks), Drink.class);
+                .bodyValue(response);
     }
 
-    // Метод для отримання інгредієнтів конкретного напою
-    public Mono<ServerResponse> getIngredients(Long drinkId) {
-        Optional<Drink> optionalDrink = drinks.stream()
-                .filter(d -> d.getId().equals(drinkId))
-                .findFirst();
-
-        if (optionalDrink.isPresent()) {
-            List<Ingredient> ingredients = optionalDrink.get().getIngredients();
-            return ServerResponse
-                    .ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Flux.fromIterable(ingredients), Ingredient.class);
-        } else {
-            return ServerResponse.badRequest().bodyValue("Напій не знайдено");
-        }
+    // Метод створення помилкової відповіді
+    private Mono<ServerResponse> createErrorResponse(String message) {
+        return createResponse(
+                ApiResponse.error(message),
+                400
+        );
     }
 
-    // Метод для покупки напою
-    public Mono<ServerResponse> purchaseDrink(Long drinkId, Double userBalance) {
-        Optional<Drink> optionalDrink = drinks.stream()
-                .filter(d -> d.getId().equals(drinkId))
-                .findFirst();
+    // Метод створення успішної відповіді
+    private Mono<ServerResponse> createSuccessResponse(ApiResponse<?> response) {
+        return createResponse(response, 200);
+    }
 
-        if (optionalDrink.isPresent()) {
-            Drink drink = optionalDrink.get();
-            if (userBalance >= drink.getPrice() && drink.getPortionsAvailable() > 0) {
-                drink.setPortionsAvailable(drink.getPortionsAvailable() - 1);
-                return ServerResponse.ok().bodyValue("Придбано " + drink.getName());
-            } else if (userBalance < drink.getPrice()) {
-                return ServerResponse.badRequest().bodyValue("Недостатньо коштів");
-            } else {
-                return ServerResponse.badRequest().bodyValue("Напій відсутній");
-            }
-        } else {
-            return ServerResponse.badRequest().bodyValue("Напій не знайдено");
-        }
+    // Метод отримання всіх напоїв
+    public Mono<ServerResponse> getAllDrinks(ServerRequest request) {
+        return drinkService.getAllDrinks()
+                .collectList()
+                .map(drinks -> ApiResponse.success("Drinks retrieved successfully", drinks))
+                .flatMap(this::createSuccessResponse)
+                .doOnSubscribe(subscription -> request.attributes()); // Use request parameter
+    }
+
+    // Метод отримання напою за ідентифікатором
+    public Mono<ServerResponse> getDrinkById(ServerRequest request) {
+        return Mono.just(request.pathVariable("id"))
+                .map(Long::parseLong)
+                .flatMap(drinkService::getDrinkById)
+                .map(drink -> ApiResponse.success("Drink found", drink))
+                .flatMap(this::createSuccessResponse)
+                .switchIfEmpty(createResponse(ApiResponse.error("Drink not found"), 404));
+    }
+
+    // Метод отримання інгредієнтів напою
+    public Mono<ServerResponse> getIngredients(ServerRequest request) {
+        return Mono.just(request.pathVariable("id"))
+                .map(Long::parseLong)
+                .flatMap(drinkService::getDrinkById)
+                .map(drink -> ApiResponse.success("Ingredients retrieved successfully", drink.getIngredients()))
+                .flatMap(this::createSuccessResponse)
+                .switchIfEmpty(createResponse(ApiResponse.error("Drink not found"), 404));
+    }
+
+    // Метод придбання напою
+    public Mono<ServerResponse> purchaseDrink(ServerRequest request) {
+        return Mono.just(request.pathVariable("id"))
+                .map(Long::parseLong)
+                .flatMap(drinkService::purchaseDrink)
+                .map(drink -> ApiResponse.success("Purchase successful", drink))
+                .flatMap(this::createSuccessResponse)
+                .onErrorResume(e -> createErrorResponse(e.getMessage()));
     }
 }
