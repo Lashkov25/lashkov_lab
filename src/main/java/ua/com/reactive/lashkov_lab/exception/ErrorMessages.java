@@ -11,4 +11,6 @@ public final class ErrorMessages {
     public static final String USERNAME_EXISTS = "Username already exists";
     public static final String INSUFFICIENT_BALANCE = "Insufficient balance";
     public static final String DEFAULT_ROLE_NOT_FOUND = "Default role not found";
+    public static final String QUANTITY_MUST_BE_POSITIVE = "Quantity must be positive";
+    public static final String INVALID_CREDENTIALS = "Invalid username or password";
 }

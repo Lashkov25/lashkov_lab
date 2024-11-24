@@ -14,11 +14,11 @@ import ua.com.reactive.lashkov_lab.repository.DrinkRepository;
 public class DrinkService {
     private final DrinkRepository drinkRepository;
 
-    public Flux<Drink> getAllDrinks() {
+    public Flux<Drink> findAll() {
         return drinkRepository.findAll();
     }
 
-    public Mono<Drink> getDrinkById(Long id) {
+    public Mono<Drink> findById(Long id) {
         return drinkRepository.findById(id)
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)));
     }
@@ -27,14 +27,14 @@ public class DrinkService {
         return drinkRepository.save(drink);
     }
 
-    public Mono<Drink> updateDrinkInfo(Long id, Drink updatedDrink) {
+    public Mono<Drink> updateDrink(Long id, Drink drink) {
         return drinkRepository.findById(id)
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
                 .flatMap(existingDrink -> {
-                    existingDrink.setName(updatedDrink.getName());
-                    existingDrink.setPrice(updatedDrink.getPrice());
-                    existingDrink.setDescription(updatedDrink.getDescription());
-                    existingDrink.setQuantity(updatedDrink.getQuantity());
+                    existingDrink.setName(drink.getName());
+                    existingDrink.setDescription(drink.getDescription());
+                    existingDrink.setPrice(drink.getPrice());
+                    existingDrink.setQuantity(drink.getQuantity());
                     return drinkRepository.save(existingDrink);
                 });
     }
@@ -42,29 +42,18 @@ public class DrinkService {
     public Mono<Void> deleteDrink(Long id) {
         return drinkRepository.findById(id)
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
-                .then(drinkRepository.deleteById(id));
+                .flatMap(drinkRepository::delete);
     }
 
-    public Mono<Drink> processPurchase(Long drinkId) {
-        return drinkRepository.findById(drinkId)
-                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
-                .flatMap(drink -> {
-                    if (drink.getQuantity() <= 0) {
-                        return Mono.error(new BusinessException(ErrorMessages.DRINK_OUT_OF_STOCK));
-                    }
-                    drink.setQuantity(drink.getQuantity() - 1);
-                    return drinkRepository.save(drink);
-                });
-    }
-
-    public Mono<Drink> refillIngredients(Long id, int quantity) {
-        if (quantity <= 0) {
-            return Mono.error(new BusinessException("Quantity must be positive"));
-        }
+    public Mono<Drink> updateDrinkQuantity(Long id, int quantityChange) {
         return drinkRepository.findById(id)
                 .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
                 .flatMap(drink -> {
-                    drink.setQuantity(drink.getQuantity() + quantity);
+                    int newQuantity = drink.getQuantity() + quantityChange;
+                    if (newQuantity < 0) {
+                        return Mono.error(new BusinessException(ErrorMessages.DRINK_OUT_OF_STOCK));
+                    }
+                    drink.setQuantity(newQuantity);
                     return drinkRepository.save(drink);
                 });
     }

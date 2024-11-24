@@ -10,14 +10,14 @@ import ua.com.reactive.lashkov_lab.dto.ApiResponse;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public Mono<ResponseEntity<ApiResponse<Void>>> handleBusinessException(BusinessException ex) {
+    public Mono<ResponseEntity<ApiResponse<Object>>> handleBusinessException(BusinessException ex) {
         return Mono.just(ResponseEntity.badRequest()
-                .body(new ApiResponse<>(ex.getMessage())));
+                .body(ApiResponse.error(ex.getMessage())));
     }
 
     @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<ApiResponse<Void>>> handleGenericException(Exception ex) {
+    public Mono<ResponseEntity<ApiResponse<Object>>> handleException(Exception ex) {
         return Mono.just(ResponseEntity.internalServerError()
-                .body(new ApiResponse<>(ex.getMessage())));
+                .body(ApiResponse.error("Internal server error")));
     }
 }

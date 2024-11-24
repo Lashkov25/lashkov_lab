@@ -18,48 +18,44 @@ public class DrinkController {
 
     @GetMapping
     public Flux<Drink> getAllDrinks() {
-        return drinkService.getAllDrinks();
+        return drinkService.findAll();
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<Drink>> getDrinkById(@PathVariable Long id) {
-        return drinkService.getDrinkById(id)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+    public Mono<ResponseEntity<ApiResponse<Drink>>> getDrinkById(@PathVariable Long id) {
+        return drinkService.findById(id)
+                .map(drink -> ResponseEntity.ok(new ApiResponse<>(drink)));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Mono<ResponseEntity<ApiResponse<Drink>>> createDrink(@RequestBody Drink drink) {
         return drinkService.createDrink(drink)
-                .map(created -> ResponseEntity.ok(new ApiResponse<>(created)));
+                .map(createdDrink -> ResponseEntity.ok(new ApiResponse<>(createdDrink)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Mono<ResponseEntity<ApiResponse<Drink>>> updateDrink(@PathVariable Long id, @RequestBody Drink drink) {
-        return drinkService.updateDrinkInfo(id, drink)
-                .map(updated -> ResponseEntity.ok(new ApiResponse<>(updated)));
+    public Mono<ResponseEntity<ApiResponse<Drink>>> updateDrink(
+            @PathVariable Long id,
+            @RequestBody Drink drink) {
+        return drinkService.updateDrink(id, drink)
+                .map(updatedDrink -> ResponseEntity.ok(new ApiResponse<>(updatedDrink)));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Mono<ResponseEntity<Void>> deleteDrink(@PathVariable Long id) {
         return drinkService.deleteDrink(id)
-                .then(Mono.just(ResponseEntity.ok().<Void>build()));
+                .then(Mono.just(ResponseEntity.noContent().<Void>build()));
     }
 
-    @PostMapping("/{id}/purchase")
-    @PreAuthorize("hasRole('USER')")
-    public Mono<ResponseEntity<ApiResponse<Drink>>> purchaseDrink(@PathVariable Long id) {
-        return drinkService.processPurchase(id)
-                .map(drink -> ResponseEntity.ok(new ApiResponse<>(drink)));
-    }
-
-    @PostMapping("/{id}/refill")
+    @PutMapping("/{id}/quantity")
     @PreAuthorize("hasRole('ADMIN')")
-    public Mono<ResponseEntity<ApiResponse<Drink>>> refillDrink(@PathVariable Long id, @RequestParam int quantity) {
-        return drinkService.refillIngredients(id, quantity)
+    public Mono<ResponseEntity<ApiResponse<Drink>>> updateQuantity(
+            @PathVariable Long id,
+            @RequestParam int quantity) {
+        return drinkService.updateDrinkQuantity(id, quantity)
                 .map(drink -> ResponseEntity.ok(new ApiResponse<>(drink)));
     }
 }

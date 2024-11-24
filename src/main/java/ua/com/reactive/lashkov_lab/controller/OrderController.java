@@ -20,34 +20,28 @@ public class OrderController {
     @PostMapping
     @PreAuthorize("hasRole('USER')")
     public Mono<ResponseEntity<ApiResponse<Order>>> createOrder(
+            Authentication authentication,
             @RequestParam Long drinkId,
-            Authentication authentication) {
+            @RequestParam(defaultValue = "1") int quantity) {
         Long userId = Long.parseLong(authentication.getName());
-        return orderService.createOrder(drinkId, userId)
-                .map(order -> ResponseEntity.ok(new ApiResponse<>(order)));
-    }
-
-    @PostMapping("/{orderId}/process")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Mono<ResponseEntity<ApiResponse<Order>>> processOrder(@PathVariable Long orderId) {
-        return orderService.processOrder(orderId)
-                .map(order -> ResponseEntity.ok(new ApiResponse<>(order)));
+        return orderService.createOrder(userId, drinkId, quantity)
+                .map(order -> ResponseEntity.ok(ApiResponse.success(order)));
     }
 
     @GetMapping
     @PreAuthorize("hasRole('USER')")
     public Flux<Order> getUserOrders(Authentication authentication) {
         Long userId = Long.parseLong(authentication.getName());
-        return orderService.getUserOrders(userId);
+        return orderService.findAllByUserId(userId);
     }
 
-    @GetMapping("/{orderId}")
+    @GetMapping("/{id}")
     @PreAuthorize("hasRole('USER')")
-    public Mono<ResponseEntity<ApiResponse<Order>>> getOrder(
-            @PathVariable Long orderId,
-            Authentication authentication) {
+    public Mono<ResponseEntity<ApiResponse<Order>>> getOrderById(
+            Authentication authentication,
+            @PathVariable Long id) {
         Long userId = Long.parseLong(authentication.getName());
-        return orderService.getOrder(orderId, userId)
-                .map(order -> ResponseEntity.ok(new ApiResponse<>(order)));
+        return orderService.findByIdAndUserId(id, userId)
+                .map(order -> ResponseEntity.ok(ApiResponse.success(order)));
     }
 }

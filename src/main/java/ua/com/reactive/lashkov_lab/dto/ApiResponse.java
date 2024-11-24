@@ -1,12 +1,10 @@
 package ua.com.reactive.lashkov_lab.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class ApiResponse<T> {
     private T data;
     private String message;
@@ -15,11 +13,24 @@ public class ApiResponse<T> {
     public ApiResponse(T data) {
         this.data = data;
         this.success = true;
-        this.message = "Success";
     }
 
-    public ApiResponse(String message) {
+    public ApiResponse(String message, boolean success) {
         this.message = message;
-        this.success = true;
+        this.success = success;
+    }
+
+    public static <T> ApiResponse<T> success(T data) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setData(data);
+        response.setSuccess(true);
+        return response;
+    }
+
+    public static <T> ApiResponse<T> error(String message) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setMessage(message);
+        response.setSuccess(false);
+        return response;
     }
 }
