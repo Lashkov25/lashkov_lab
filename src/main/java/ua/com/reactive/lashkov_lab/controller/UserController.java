@@ -2,48 +2,41 @@ package ua.com.reactive.lashkov_lab.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import ua.com.reactive.lashkov_lab.dto.UserRegistrationDto;
+import ua.com.reactive.lashkov_lab.dto.ApiResponse;
 import ua.com.reactive.lashkov_lab.entity.User;
 import ua.com.reactive.lashkov_lab.service.UserService;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 
 @RestController
-@RequestMapping("/api/admin/users")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
-
     private final UserService userService;
 
-    @GetMapping
-    public Flux<User> getAllUsers() {
-        return userService.getAllUsers();
+    @GetMapping("/me")
+    public Mono<ResponseEntity<ApiResponse<User>>> getCurrentUser() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(context -> context.getAuthentication().getName())
+                .flatMap(userService::findByUsername)
+                .cast(User.class)
+                .map(user -> ResponseEntity.ok(new ApiResponse<>(user)))
+                .onErrorResume(e -> Mono.just(
+                        ResponseEntity.badRequest()
+                                .body(new ApiResponse<>(e.getMessage()))));
     }
 
-    @GetMapping("/{id}")
-    public Mono<ResponseEntity<User>> getUserById(@PathVariable Long id) {
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping
-    public Mono<ResponseEntity<User>> createUser(@RequestBody UserRegistrationDto userDto) {
-        User user = new User();
-        user.setUsername(userDto.getUsername());
-        user.setPassword(userDto.getPassword());
-        user.setBalance(0.0);
-
-        return userService.registerUser(user)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.badRequest().build());
-    }
-
-    @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Void>> deleteUser(@PathVariable Long id) {
-        return userService.deleteUser(id)
-                .then(Mono.just(ResponseEntity.ok().<Void>build()))
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+    @PostMapping("/{id}/balance")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Mono<ResponseEntity<ApiResponse<User>>> updateBalance(
+            @PathVariable Long id,
+            @RequestParam Double amount) {
+        return userService.updateUserBalance(id, amount)
+                .map(user -> ResponseEntity.ok(new ApiResponse<>(user)))
+                .onErrorResume(e -> Mono.just(
+                        ResponseEntity.badRequest()
+                                .body(new ApiResponse<>(e.getMessage()))));
     }
 }

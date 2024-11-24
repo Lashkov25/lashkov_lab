@@ -1,28 +1,20 @@
 package ua.com.reactive.lashkov_lab.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import lombok.ToString;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-import org.springframework.security.core.GrantedAuthority;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
-@Table(name = "roles")
-public class Role implements GrantedAuthority {
-
+@Table("roles")
+public class Role {
     @Id
     private Long id;
+    
+    @Column("name")
     private String name;
-
-    @Override
-    public String getAuthority() {
-        return getName();
-    }
 }

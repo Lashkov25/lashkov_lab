@@ -8,15 +8,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApiResponse<T> {
-    private boolean success;
-    private String message;
     private T data;
+    private String message;
+    private boolean success;
 
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(true, message, data);
+    public ApiResponse(T data) {
+        this.data = data;
+        this.success = true;
+        this.message = "Success";
     }
 
-    public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null);
+    public ApiResponse(String message) {
+        this.message = message;
+        this.success = true;
     }
 }

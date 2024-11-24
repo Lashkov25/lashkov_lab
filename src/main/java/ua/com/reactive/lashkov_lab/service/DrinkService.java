@@ -1,20 +1,18 @@
 package ua.com.reactive.lashkov_lab.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ua.com.reactive.lashkov_lab.entity.Drink;
+import ua.com.reactive.lashkov_lab.exception.BusinessException;
+import ua.com.reactive.lashkov_lab.exception.ErrorMessages;
 import ua.com.reactive.lashkov_lab.repository.DrinkRepository;
-import ua.com.reactive.lashkov_lab.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
 public class DrinkService {
     private final DrinkRepository drinkRepository;
-    private final UserRepository userRepository;
 
     public Flux<Drink> getAllDrinks() {
         return drinkRepository.findAll();
@@ -22,55 +20,52 @@ public class DrinkService {
 
     public Mono<Drink> getDrinkById(Long id) {
         return drinkRepository.findById(id)
-                .switchIfEmpty(Mono.error(new RuntimeException("Drink not found with id: " + id)));
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)));
     }
 
     public Mono<Drink> createDrink(Drink drink) {
-        return validateDrink(drink)
-                .then(drinkRepository.save(drink));
+        return drinkRepository.save(drink);
+    }
+
+    public Mono<Drink> updateDrinkInfo(Long id, Drink updatedDrink) {
+        return drinkRepository.findById(id)
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
+                .flatMap(existingDrink -> {
+                    existingDrink.setName(updatedDrink.getName());
+                    existingDrink.setPrice(updatedDrink.getPrice());
+                    existingDrink.setDescription(updatedDrink.getDescription());
+                    existingDrink.setQuantity(updatedDrink.getQuantity());
+                    return drinkRepository.save(existingDrink);
+                });
     }
 
     public Mono<Void> deleteDrink(Long id) {
         return drinkRepository.findById(id)
-                .switchIfEmpty(Mono.error(new RuntimeException("Drink not found with id: " + id)))
-                .flatMap(drink -> drinkRepository.deleteById(id));
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
+                .then(drinkRepository.deleteById(id));
     }
 
-    private Mono<Void> validateDrink(Drink drink) {
-        return Mono.defer(() -> {
-            if (drink.getName() == null || drink.getName().trim().isEmpty()) {
-                return Mono.error(new IllegalArgumentException("Drink name cannot be empty"));
-            }
-            if (drink.getPrice() == null || drink.getPrice() < 0) {
-                return Mono.error(new IllegalArgumentException("Drink price must be positive"));
-            }
-            if (drink.getPortionsAvailable() == null || drink.getPortionsAvailable() < 0) {
-                return Mono.error(new IllegalArgumentException("Portions available cannot be negative"));
-            }
-            return Mono.empty();
-        });
+    public Mono<Drink> processPurchase(Long drinkId) {
+        return drinkRepository.findById(drinkId)
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
+                .flatMap(drink -> {
+                    if (drink.getQuantity() <= 0) {
+                        return Mono.error(new BusinessException(ErrorMessages.DRINK_OUT_OF_STOCK));
+                    }
+                    drink.setQuantity(drink.getQuantity() - 1);
+                    return drinkRepository.save(drink);
+                });
     }
 
-    @Transactional
-    public Mono<Drink> purchaseDrink(Long drinkId) {
-        return ReactiveSecurityContextHolder.getContext()
-                .map(context -> context.getAuthentication().getName())
-                .flatMap(userRepository::findByUsername)
-                .flatMap(user -> drinkRepository.findById(drinkId)
-                        .switchIfEmpty(Mono.error(new RuntimeException("Drink not found")))
-                        .flatMap(drink -> {
-                            if (drink.getPortionsAvailable() <= 0) {
-                                return Mono.error(new RuntimeException("Drink is out of stock"));
-                            }
-                            if (drink.getPrice() > user.getBalance()) {
-                                return Mono.error(new RuntimeException("Insufficient funds"));
-                            }
-
-                            user.setBalance(user.getBalance() - drink.getPrice());
-                            drink.setPortionsAvailable(drink.getPortionsAvailable() - 1);
-
-                            return userRepository.save(user)
-                                    .then(drinkRepository.save(drink));
-                        }));
+    public Mono<Drink> refillIngredients(Long id, int quantity) {
+        if (quantity <= 0) {
+            return Mono.error(new BusinessException("Quantity must be positive"));
+        }
+        return drinkRepository.findById(id)
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessages.DRINK_NOT_FOUND)))
+                .flatMap(drink -> {
+                    drink.setQuantity(drink.getQuantity() + quantity);
+                    return drinkRepository.save(drink);
+                });
     }
 }
